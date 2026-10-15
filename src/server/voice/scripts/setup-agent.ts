@@ -1,5 +1,7 @@
-// Creates or updates the ElevenLabs collections agent and assigns the
-// integrated Twilio number to it. Prints IDs only, never secrets.
+// Creates or updates the ElevenLabs collections agent and detaches it from the
+// integrated Twilio number's inbound routing: Due only places outbound calls
+// (the adapter names the agent and number per call). Prints IDs only, never
+// secrets.
 //
 //   npx tsx --env-file=.env.local src/server/voice/scripts/setup-agent.ts
 import { agentConfigBody } from "../agent-config";
@@ -36,8 +38,9 @@ async function main() {
     console.log("no phone number assigned: import a Twilio number in ElevenLabs and set ELEVENLABS_AGENT_PHONE_NUMBER_ID");
     return;
   }
-  await call("PATCH", `/v1/convai/phone-numbers/${number.phone_number_id}`, { agent_id: agentId });
-  console.log(`assigned ${number.provider} number ${number.phone_number} (${number.phone_number_id}) to agent`);
+  // Outbound only: leave no agent bound to the number so inbound calls are not answered.
+  await call("PATCH", `/v1/convai/phone-numbers/${number.phone_number_id}`, { agent_id: null });
+  console.log(`inbound disabled on ${number.provider} number ${number.phone_number} (${number.phone_number_id}); outbound only`);
 }
 
 main().catch((e) => {

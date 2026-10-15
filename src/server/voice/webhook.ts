@@ -101,6 +101,11 @@ export async function verifyAndNormaliseCallEvent(
     return { ok: false, errorCode: "unsupported_event" };
   }
 
+  // Due only places outbound calls; an inbound conversation never updates an invoice.
+  if (str(data.metadata?.phone_call?.direction).toLowerCase() === "inbound") {
+    return { ok: false, errorCode: "inbound_call" };
+  }
+
   const conversationId = str(data.conversation_id);
   const vars = (data.conversation_initiation_client_data?.dynamic_variables ?? {}) as Record<string, unknown>;
   const actionId = str(vars.due_action_id);
