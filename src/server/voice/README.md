@@ -10,8 +10,8 @@ Branch `codex/voice`, files only under `src/server/voice/**`. No dependencies, s
 
 **Already live (identifiers, not secrets):**
 
-- ElevenLabs agent "Due collections": `agent_9301m50ff7pxe36ss4jfsysd3ham`, configured from `agent-config.ts`
-- Twilio number `+16413374120`, imported as `phnum_4301m50ezantfa4t58d8z38q91eq` and used by that agent for outbound calls only (no inbound agent assigned)
+- ElevenLabs agent "Due collections": `<ELEVENLABS_AGENT_ID>` (set in `.env.local`), configured from `agent-config.ts`
+- Twilio number `<TWILIO_NUMBER>`, imported as `<ELEVENLABS_AGENT_PHONE_NUMBER_ID>` and used by that agent for outbound calls only (no inbound agent assigned)
 - Allowlisted demo destination: the teammate's verified mobile, held in `VOICE_DEMO_ALLOWLIST`
 
 **Integration steps:**
