@@ -24,7 +24,14 @@ export function useResource<T>(load: (signal: AbortSignal) => Promise<ApiResult<
   }, [load]);
   useEffect(() => {
     void reload();
-    return () => controller.current?.abort();
+    const refresh = () => { if (document.visibilityState === 'visible') void reload(); };
+    const timer = window.setInterval(refresh, 15000);
+    window.addEventListener('focus', refresh);
+    return () => {
+      controller.current?.abort();
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refresh);
+    };
   }, [reload]);
   return {
     result,

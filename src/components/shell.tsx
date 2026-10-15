@@ -7,13 +7,11 @@ export function Shell({
   children,
   active = 'overview',
   appTime,
-  mock = false,
   policy
 }: {
   children: ReactNode;
   active?: 'overview' | 'invoices';
   appTime?: AppTime;
-  mock?: boolean;
   policy?: string;
 }) {
   return <div className="app-shell">
@@ -53,7 +51,7 @@ export function Shell({
       </header>
       <main id="main">
         <div className="environment-strip">
-          <span>{mock ? <><b>MOCK DATA</b> · Synthetic fixtures · No provider activity shown is live</> : appTime ? 'Connected API · Stripe test environment' : 'Awaiting API response'}</span>
+          <span>{appTime ? 'Connected API · Stripe test environment' : 'Awaiting API response'}</span>
           <span className={appTime?.simulated ? 'simulated-clock' : ''}>{appTime && <><b>{appTime.simulated ? 'SIMULATED TIME' : 'APP TIME'}</b> {date(appTime.now, true)} · London</>}</span>
         </div>
         {children}

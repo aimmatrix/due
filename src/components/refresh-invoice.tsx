@@ -19,11 +19,15 @@ export function RefreshInvoice({
     setMessage('');
     try {
       const response = await api.refreshInvoice(id);
-      setMessage(`${response.mock ? 'Mock result: ' : ''}${response.data.changed ? 'Invoice updated.' : 'Balance is up to date.'}`);
-      await onChange();
+      setMessage(response.data.changed ? 'Invoice updated.' : 'Balance is up to date.');
     } catch (cause) {
       setError(cause instanceof ApiError ? cause : new ApiError('Refresh failed.', 'REFRESH_FAILED', 'unavailable', 0));
     } finally {
+      try {
+        await onChange();
+      } catch {
+        setError(new ApiError('Could not reload the latest view. Sync again to check the result.', 'RELOAD_FAILED', 'unavailable', 0));
+      }
       setBusy(false);
     }
   }

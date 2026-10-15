@@ -22,7 +22,7 @@ export function Dashboard() {
   const [query, setQuery] = useState('');
   const data = result?.data;
   const invoices = data?.invoices.filter(invoice => (filter === 'all' || (filter === 'outstanding' ? invoice.amountRemainingMinor > 0 : invoice.stripeStatus === 'paid')) && `${invoice.customerName} ${invoice.milestoneTitle} ${invoice.stripeInvoiceNumber ?? ''}`.toLowerCase().includes(query.toLowerCase())) ?? [];
-  return <Shell appTime={data?.appTime} policy={data?.policy.version} mock={result?.mock}>
+  return <Shell appTime={data?.appTime} policy={data?.policy.version}>
     <div className="page-heading">
       <div>
         <p className="eyebrow">YOUR RECEIVABLES, IN MOTION</p>
@@ -34,6 +34,7 @@ export function Dashboard() {
     {error && <ErrorNotice error={error} retry={reload} />}
     {loading && !data && <Loading />}
     {data && <>
+      <DemoControls appTime={data.appTime} onChange={reload} />
       <section className="metrics" aria-label="Receivables summary">{[{
           label: 'Total invoiced',
           value: formatMoney(data.totals.invoicedMinor, data.totals.currency),
@@ -107,7 +108,7 @@ export function Dashboard() {
                     <td><Link className="arrow-link" aria-label={`View ${invoice.customerName} ${invoice.milestoneTitle}`} href={`/invoices/${encodeURIComponent(invoice.id)}`}>↗</Link></td>
                   </tr>)}</tbody>
               </table></div>
-            {!invoices.length && <Empty>{data.invoices.length ? 'No invoices match your search or filter.' : 'No invoices yet. A completed-work event starts the billing process.'}</Empty>}
+            {!invoices.length && <Empty>{data.invoices.length ? 'No invoices match your search or filter.' : <>No invoices yet: <Link className="text-link" href="/forms/completion">report completed work</Link>.</>}</Empty>}
             <details className="invoice-tools">
               <summary>Stripe links & reconciliation <span>↗</span></summary>
               {invoices.map(invoice => <div className="invoice-tool-row" key={invoice.id}>
@@ -126,10 +127,10 @@ export function Dashboard() {
                   <p>
                     {run.sourceType === 'fixture_replay' ? <Badge tone="amber">FIXTURE REPLAY</Badge> : human(run.sourceType)}
                     <span className="muted">→</span>
-                    {human(run.state)}
+                    <Badge tone={run.state === 'failed_retryable' ? 'red' : run.state === 'review_required' ? 'amber' : 'neutral'}>{run.state}</Badge>
                   </p>
                   <small className="source-ref">{run.sourceRef}</small>
-                  {run.lastError && <p className="text-red">{run.lastError.message}</p>}
+                  {run.lastError && <p className="text-red"><code>{run.lastError.code}</code> · {run.lastError.message}</p>}
                 </div>
                 <div className="run-end">
                   <time>{date(run.receivedAt, true)}</time>
@@ -161,7 +162,7 @@ export function Dashboard() {
                   <span className={`service-dot ${service.state === 'ok' ? 'ok' : 'warning'}`} />
                   {service.service === 'llm' ? 'Language model' : service.service === 'elevenlabs' ? 'ElevenLabs' : service.service === 'cognee' ? 'Cognee memory' : human(service.service)}
                 </span>
-                <small>{service.service === 'cognee' && service.state === 'unavailable' ? 'Fallback in use' : service.state === 'ok' ? 'Connected' : human(service.state)}</small>
+                <small>{human(service.state)} · {service.detail}</small>
               </div>)}</div>
             {!data.services.length && <Empty>No service status reported.</Empty>}
           </Panel>
@@ -181,7 +182,6 @@ export function Dashboard() {
           </div>
         </aside>
       </div>
-      <DemoControls onChange={reload} />
     </>}
   </Shell>;
 }

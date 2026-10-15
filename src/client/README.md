@@ -1,33 +1,27 @@
-# A4 dashboard handoff
+# R2-4 live dashboard handoff
 
-Implemented A4-01 through A4-05 against the frozen API. The UI fetches the actual endpoints; it never substitutes local fixtures. A4-06 technical checks are complete; live end-to-end rehearsal awaits backend integration.
+Implements A4-03 through A4-06. Production UI reads `/api/dashboard` and `/api/invoices/:id` only; synthetic contract fixtures are imported exclusively by tests. The removed `x-due-mock` header is no longer consulted.
 
-## Preview
+## Behaviour
 
-Branch: `codex/dashboard`, based on spine `517ccf7`.
-Worktree: `/Users/ammad/Downloads/due-dashboard`.
-Run `PORT=3102 npm run dev`, then open http://localhost:3102.
-
-## Demo sequence (under two minutes)
-
-1. Overview: point to **MOCK DATA** while fixtures are being served. Identify total, collected and outstanding amounts; Stripe status and collection status are distinct.
-2. Open Acme's Website migration. Explain £1,200 from the stored contract clause, the highlighted completion evidence, tax assumption and policy version.
-3. Scroll to Collection journey: reminder #1 delivered → call initiated → separately recorded promise outcome → reminder #2 deferred until 8 November.
-4. Point to the 7 November promise and call eligibility checks. The active promise blocks another call. Structured fallback is identified honestly when Cognee is unavailable.
-5. Show the audit trail, including simulated application timestamps and the original recorded timestamps in Decision provenance.
-6. Once the backend is wired, use Advance clock +24h / Run due actions, then refresh from Stripe after a test payment. The UI reloads its read model after each successful mutation. It never creates or approves invoices.
+- Empty invoices link to `/forms/completion`. Recent runs display exact states, `lastError.code`, error messages and `decisionCode`; review and retryable failure states are visually distinct.
+- Clock controls use GET/POST `/api/demo/clock`. The amber SIMULATED TIME label and the manually ticked Demo path appear when the read model reports simulated time. The checklist can also be opened explicitly in real time.
+- Demo actions refetch the visible read model even on failure, since an action may have made partial progress. Invoice-detail controls also refetch the dashboard. Stripe refresh uses the returned `changed` flag. No dashboard control creates or approves an invoice.
+- Visible pages refresh every 15 seconds and on focus so external call/payment webhooks appear without manual navigation. Fetches are aborted on navigation or replacement.
+- Reminder delivery, eligibility checks and the response-window countdown use application time. Accepted dispatch with no outcome says “Call initiated, awaiting result”. Summary, promise date and transcript reference appear only when returned.
+- Collection status, promises, disputes, unused memory and degraded/fake service details remain explicit. External Stripe links open in new tabs.
 
 ## Verification
 
-- `npm run typecheck`: passes.
-- `npm test`: 15 tests, including 8 API-client tests. Covers mock-marker removal, API error correlation, HTML 404 handling, malformed envelopes, network failures, clock request serialization and escaped invoice IDs.
-- Browser checked at 1280×720 and 390×844: invoice filters, empty search results, fixture amounts, invoice navigation, highlighted evidence, dispatch versus outcome, simulated clock and unavailable-control error handling. Mobile detail has no page-level horizontal overflow.
-- Production build: both `npm run build` (Turbopack) and `npm run build -- --webpack` passed. Initial sandbox permission/cache errors cleared after a clean build in the final worktree location.
+- `npm run typecheck` passed; `npm test` passed (176 tests across the integrated workspace at verification time).
+- Client regression tests cover missing scheduler HTML/JSON responses, clock reads/writes, invoice refresh, error references, empty-state form navigation, failure/review codes, simulated-only checklist, pending/recorded voice outcomes and application-clock countdown boundaries.
+- Browser checked at 1280×720: an isolated empty SQLite database showed the completion link; submitting the real form returned `review_required` / `CUSTOMER_UNRESOLVED`, which appeared in recent runs. Clock advance/reset changed the header correctly. The scheduler's actual HTTP 404 displayed “not available yet”.
+- Read-only inspection of the existing Stripe test invoice showed its £1,200 stored-price explanation, £0 outstanding balance, unused memory and `_blank` links. Its 390×844 mobile view had document width equal to viewport width (390px).
+- The isolated verification used fake external adapters and a temporary database, without changing the existing server's clock or records. No real call, email or payment was initiated by this UI verification.
 
-## Backend integration gaps for A0
+## Integration requests / remaining rehearsal gaps
 
-- `POST /api/demo/clock`, `POST /api/demo/run-due-actions`, and `POST /api/invoices/:id/refresh` are absent at the spine checkpoint. Buttons call the contracts and show readable errors; there is no fabricated success.
-- The dashboard fixture includes `inv_fixture_acme_seo`, but its detail API only accepts `inv_fixture_acme`. Opening SEO audit therefore shows the API's `INVOICE_NOT_FOUND` error and correlation ID. A0 should supply a detail read model for every listed invoice.
-- Remove `x-due-mock: true` only when read models are backed by actual records. The UI then removes its mock banner automatically.
-- Real input → Stripe invoice → payment → zero balance and real telephony remain backend/integration acceptance work. This lane does not claim external operations were exercised.
-- No changes to contracts, API routes, server modules, manifests or lockfiles are needed.
+1. Scheduler owner: provide `POST /api/demo/run-due-actions` using `RunDueActionsResponse`. It currently returns 404. The UI reports this honestly.
+2. Scheduler/voice owners: rehearse delivered reminder → elapsed window → accepted call → webhook result → promise deferral against the live read models. Client rendering is regression-tested, but this provider sequence was not exercised here.
+3. API owner: consider exposing whether demo controls are enabled in the read model. Currently disabled mode is discovered from the POST's `DEMO_MODE_DISABLED` response.
+4. No contract extensions are required for the requested UI. Controls have no approval or invoice-creation route.
