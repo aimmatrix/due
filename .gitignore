@@ -16,3 +16,4 @@ coverage/
 data/
 *.tsbuildinfo
 next-env.d.ts
+.next-e2e/

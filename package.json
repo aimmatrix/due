@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "check:env": "tsx --env-file-if-exists=.env.local scripts/check-env.ts",
     "worker": "tsx --env-file-if-exists=.env.local scripts/worker.ts",
-    "db:seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts"
+    "db:seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts",
+    "e2e:stripe": "node --env-file=.env.local --import tsx scripts/e2e-a0-05.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.134.0",
