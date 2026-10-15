@@ -126,6 +126,12 @@ describe("evaluateBilling without an LLM (rule-based fallback)", () => {
     expect(d.kind === "bill" && d.explanation).toContain("rule-based fallback (no LLM configured)");
   });
 
+  it("handles service-completion form text, where a label line precedes the notes", async () => {
+    const text = "Service completion reported by Priya for Acme Ltd.\nMilestone: M3-seo-audit.\nNotes: Confirming the SEO audit M3-seo-audit is complete. The client signed off.";
+    const d = await evaluateBilling(ctx(text), { llm: unavailableLlm });
+    expect([d.kind, d.kind === "bill" && d.calculation.totalMinor]).toEqual(["bill", 45000]);
+  });
+
   it("is conservative: negations, vague wording or no reference go to review or are ignored", async () => {
     const neg = await evaluateBilling(ctx("The M2-website-migration is complete except the blog, which is not migrated yet."), { llm: unavailableLlm });
     expect(neg.kind).not.toBe("bill");

@@ -71,8 +71,9 @@ export function ruleBasedExtract(text: string, customerRef: string, milestones: 
   const completedItems: ExtractedCompletionFacts["completedItems"] = [];
   for (const m of milestones) {
     const re = new RegExp(`\\b${m.reference.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
-    const s = sents.find((x) => re.test(x));
-    if (s && COMPLETION.test(s) && !NEGATION.test(s)) completedItems.push({ reference: m.reference, description: m.title, quote: s });
+    // Any sentence that names the reference AND says it is complete (labels like "Milestone: X." don't count).
+    const s = sents.find((x) => re.test(x) && COMPLETION.test(x) && !NEGATION.test(x));
+    if (s) completedItems.push({ reference: m.reference, description: m.title, quote: s });
   }
   return {
     customerName: customerRef || null,
