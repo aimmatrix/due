@@ -2,6 +2,27 @@
 
 ElevenLabs Agents + native Twilio integration for the one permitted non-response collections call. This module initiates the call and turns the signed post-call webhook into a typed outcome. It does not persist anything, decide eligibility or open a database connection; A0 owns those.
 
+## Handoff for Ammad (A0)
+
+Branch `codex/voice`, files only under `src/server/voice/**`. No dependencies, shared types, routes or root files were changed.
+
+**Blocker: a real outbound call needs a paid Twilio account.** ElevenLabs reaches Twilio, but the trial account rejects the call ("trial accounts have limited parameter access"). Upgrade the Twilio account, then rerun `scripts/controlled-call.ts` to complete B1-01 and B1-05. Until then, report the real ElevenLabs call as unmet, not simulated.
+
+**Already live (identifiers, not secrets):**
+
+- ElevenLabs agent "Due collections": `agent_9301m50ff7pxe36ss4jfsysd3ham`, configured from `agent-config.ts`
+- Twilio number `+16413374120`, imported as `phnum_4301m50ezantfa4t58d8z38q91eq` and assigned to that agent
+- Allowlisted demo destination: the teammate's verified mobile, held in `VOICE_DEMO_ALLOWLIST`
+
+**Integration steps:**
+
+1. Add the configuration names below to `.env.example`. Secret values are shared locally, never committed.
+2. Call `createElevenLabsVoiceAdapter({ config: readVoiceConfig() }).startCollectionCall(context)` only for a reserved, freshly authorised action. Persist the returned `conversationId` and `callSid` with the voice attempt. `accepted` means initiation only; `unknown` must be reconciled, never redialled.
+3. Implement `POST /api/webhooks/elevenlabs`. Pass the **raw body string** and headers unchanged to `verifyAndNormaliseCallEvent(rawBody, headers, { webhookSecret, isKnownAction })`. `isKnownAction(actionId, conversationId)` looks up the persisted voice attempt. Enforce uniqueness on `event.dedupKey`, then apply `event.outcome` and `event.recommendation` (see Outcome rules).
+4. Once the route has a public URL: ElevenLabs → Settings → Webhooks → add a post-call webhook to it, enable HMAC and call-initiation-failure events, and set `ELEVENLABS_WEBHOOK_SECRET`.
+5. Publish voice types in `src/contracts/**`. This module will swap `types.ts` for those imports; field names already match `TEAMMATE_TASKS.md`.
+6. Run `npx tsx --test src/server/voice/*.test.ts`, or move the tests to the project test runner.
+
 ## Exports (`src/server/voice/index.ts`)
 
 | Export | Purpose |
@@ -78,10 +99,3 @@ Webhook: missing, malformed, stale (>30 min) or invalid signatures are rejected;
 - **Real outbound call is blocked by the Twilio trial account.** The controlled call on 15 Oct 2026 returned `failed / provider_rejected`; ElevenLabs reports "trial accounts have limited parameter access". Inbound calls to the same number do reach the agent. Upgrading the Twilio account is required to complete B1-01/B1-05; this is reported as an unmet requirement, not simulated.
 - Inbound calls do not carry dynamic variables, so the agent cannot start a conversation on an inbound call; this module only supports outbound.
 - Voicemail detection relies on ElevenLabs' voicemail tool and termination reason; unrecognised voicemail with no customer speech still maps to `no_answer`.
-
-## Requests for A0
-
-- Add the variable names above to `.env.example`.
-- Route `POST /api/webhooks/elevenlabs` must pass the raw body string and headers unchanged, and supply `isKnownAction(actionId, conversationId)` from persisted voice attempts.
-- Store `conversationId`/`callSid` from the initiation receipt so webhook correlation can match on both.
-- Publish `src/contracts/**` voice types; this module will switch its imports.
