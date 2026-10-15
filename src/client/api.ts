@@ -7,7 +7,6 @@ export class ApiError extends Error {
 }
 export interface ApiResult<T> {
   data: T;
-  mock: boolean;
   correlationId: string;
 }
 export async function request<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
@@ -37,7 +36,6 @@ export async function request<T>(path: string, init?: RequestInit): Promise<ApiR
   if (!response.ok || !('data' in envelope) || envelope.data == null) throw new ApiError('The request could not be completed.', 'REQUEST_FAILED', envelope.correlationId, response.status);
   return {
     data: envelope.data,
-    mock: response.headers.get('x-due-mock') === 'true',
     correlationId: envelope.correlationId
   };
 }
@@ -54,6 +52,7 @@ export const api = {
   invoice: (id: string, signal?: AbortSignal) => request<InvoiceDetailData>(`/api/invoices/${encodeURIComponent(id)}`, {
     signal
   }),
+  currentClock: (signal?: AbortSignal) => request<AppTime>('/api/demo/clock', { signal }),
   clock: (body: DemoClockRequest) => post<AppTime>('/api/demo/clock', body),
   runActions: () => post<RunDueActionsResponse>('/api/demo/run-due-actions'),
   refreshInvoice: (id: string) => post<RefreshInvoiceResponse>(`/api/invoices/${encodeURIComponent(id)}/refresh`)

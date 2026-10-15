@@ -4,26 +4,31 @@ import { FIXTURE_DASHBOARD } from '@/contracts/fixtures';
 afterEach(() => vi.unstubAllGlobals());
 const mockFetch = (body: unknown, init?: ResponseInit) => vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => Response.json(body, init)));
 describe('dashboard API boundary', () => {
-  it('keeps the mock marker separate from data and preserves the reference', async () => {
-    mockFetch({
-      data: FIXTURE_DASHBOARD,
-      correlationId: 'corr_test'
-    }, {
-      headers: {
-        'x-due-mock': 'true'
-      }
-    });
+  it('reads live dashboard data without a mock header and preserves the reference', async () => {
+    mockFetch({ data: FIXTURE_DASHBOARD, correlationId: 'corr_live' });
     const result = await api.dashboard();
-    expect(result.mock).toBe(true);
     expect(result.data.totals.outstandingMinor).toBe(120000);
-    expect(result.correlationId).toBe('corr_test');
+    expect(result.correlationId).toBe('corr_live');
   });
-  it('removes the mock state automatically when real read models are connected', async () => {
-    mockFetch({
-      data: FIXTURE_DASHBOARD,
-      correlationId: 'corr_live'
-    });
-    expect((await api.dashboard()).mock).toBe(false);
+  it('reads the current application clock without mutating it', async () => {
+    const clock = { now: '2026-10-15T10:00:00.000Z', simulated: false, offsetMs: 0 };
+    mockFetch({ data: clock, correlationId: 'corr_clock' });
+    expect((await api.currentClock()).data).toEqual(clock);
+    expect(fetch).toHaveBeenCalledWith('/api/demo/clock', expect.objectContaining({ cache: 'no-store' }));
+    expect(vi.mocked(fetch).mock.calls[0]?.[1]?.method).toBeUndefined();
+  });
+  it('reports an unavailable scheduler for an HTML 404', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<html>Not found</html>', { status: 404 })));
+    await expect(api.runActions()).rejects.toMatchObject({ status: 404, code: 'INVALID_RESPONSE' });
+  });
+  it('preserves scheduler JSON errors instead of reporting success', async () => {
+    mockFetch({ error: { code: 'NOT_AVAILABLE', message: 'Scheduler not available yet', retryable: false }, correlationId: 'corr_scheduler' }, { status: 404 });
+    await expect(api.runActions()).rejects.toMatchObject({ status: 404, code: 'NOT_AVAILABLE', correlationId: 'corr_scheduler' });
+  });
+  it('refreshes the encoded invoice endpoint and preserves the reported change', async () => {
+    mockFetch({ data: { invoice: FIXTURE_DASHBOARD.invoices[0], changed: false }, correlationId: 'corr_refresh' });
+    expect((await api.refreshInvoice('id/with spaces')).data.changed).toBe(false);
+    expect(fetch).toHaveBeenCalledWith('/api/invoices/id%2Fwith%20spaces/refresh', expect.objectContaining({ method: 'POST' }));
   });
   it('preserves a safe API error and correlation ID', async () => {
     mockFetch({

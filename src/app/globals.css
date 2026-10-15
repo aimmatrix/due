@@ -1726,3 +1726,26 @@ main {
     transition: none!important;
   }
 }
+
+/* Keep the rehearsal controls legible in a 1280 × 720 recording. */
+.demo-controls { margin: 0 0 20px; padding: 12px 16px; }
+.demo-path-heading { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; align-items: center; }
+.demo-path-heading button { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
+.demo-path-heading button:disabled { cursor: default; opacity: 1; }
+.demo-path-heading small { color: var(--muted); font-size: 11px; }
+.demo-path { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.demo-path > strong { font-size: 12px; margin-right: 12px; }
+.demo-path > span { font-size: 11px; color: var(--muted); }
+.demo-path ol { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 16px; margin: 12px 0 0; padding: 0; list-style: none; counter-reset: steps; }
+.demo-path li { font-size: 11px; line-height: 1.6; }
+.demo-path label { display: flex; gap: 7px; align-items: baseline; cursor: pointer; }
+.demo-path input { accent-color: #688157; flex-shrink: 0; }
+.response-countdown { font-size: 12px; line-height: 1.6; color: var(--ink); }
+.run-row code, .run-row .badge { overflow-wrap: anywhere; white-space: normal; }
+.run-row > div { min-width: 0; }
+.service-row small { max-width: 65%; line-height: 1.5; }
+@media (max-width: 950px) { .demo-path ol { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+  .demo-path-heading { align-items: flex-start; flex-direction: column; }
+  .demo-path ol { grid-template-columns: minmax(0, 1fr); }
+}

@@ -10,6 +10,7 @@ import { Shell } from './shell';
 import { Badge, Empty, ErrorNotice, Loading, Panel } from './ui';
 import { RefreshInvoice } from './refresh-invoice';
 import { DemoControls } from './demo-controls';
+import { ResponseCountdown } from './response-countdown';
 function Highlight({
   text,
   quotes
@@ -37,10 +38,13 @@ export function InvoiceDetail({
     result,
     error,
     loading,
-    reload
+    reload: reloadDetail
   } = useResource<InvoiceDetailData>(load);
+  const reload = useCallback(async () => {
+    await Promise.all([reloadDetail(), api.dashboard()]);
+  }, [reloadDetail]);
   const data = result?.data;
-  return <Shell active="invoices" appTime={data?.appTime} policy={data?.policy.version} mock={result?.mock}>
+  return <Shell active="invoices" appTime={data?.appTime} policy={data?.policy.version}>
     <Link className="back-link" href="/">← Back to overview</Link>
     {error && <ErrorNotice error={error} retry={reload} />}
     {loading && !data && <Loading />}
@@ -51,7 +55,7 @@ export function InvoiceDetail({
           <h1>{data.milestone.title}</h1>
           <div className="heading-badges">
             <Badge>Stripe · {human(data.invoice.stripeStatus)}</Badge>
-            <Badge tone={data.invoice.collectionStatus === 'paid' ? 'green' : 'neutral'}>{collectionLabels[data.invoice.collectionStatus]}</Badge>
+            <Badge tone={data.invoice.collectionStatus === 'paid' ? 'green' : ['promise_active', 'paused_dispute'].includes(data.invoice.collectionStatus) ? 'amber' : 'neutral'}>{collectionLabels[data.invoice.collectionStatus]}</Badge>
             <span className="quiet">Due {date(data.invoice.dueAt)}</span>
           </div>
         </div>
@@ -71,6 +75,7 @@ export function InvoiceDetail({
           <RefreshInvoice id={id} onChange={reload} />
         </div>
       </div>
+      <DemoControls appTime={data.appTime} onChange={reload} />
       <div className="detail-grid">
         <div className="main-column">
           <Panel title={`Why ${formatMoney(data.calculation.totalMinor, data.calculation.currency)}?`} eyebrow="EVERY POUND, EXPLAINED" className="explanation-panel" aside={<Badge tone="green">Stored contract price</Badge>}>
@@ -138,7 +143,7 @@ export function InvoiceDetail({
                 {attempts.map(attempt => <div className="voice-result" key={attempt.id}>
                   <div>
                     <span>Provider dispatch</span>
-                    <Badge tone={attempt.dispatchState === 'failed' ? 'red' : 'neutral'}>{attempt.dispatchState === 'accepted' ? 'Call initiated' : human(attempt.dispatchState)}</Badge>
+                    <Badge tone={attempt.dispatchState === 'failed' ? 'red' : 'neutral'}>{attempt.dispatchState === 'accepted' ? (attempt.outcome === null ? 'Call initiated, awaiting result' : 'Call initiated') : human(attempt.dispatchState)}</Badge>
                   </div>
                   <div>
                     <span>Recorded outcome</span>
@@ -147,7 +152,7 @@ export function InvoiceDetail({
                   {attempt.summary && <p>{attempt.summary}</p>}
                   {attempt.promisedDate && <p>Promised payment: <strong>
                       {date(attempt.promisedDate)}
-                      {attempt.promisedDate.slice(0, 4)}
+                      {' '}{attempt.promisedDate.slice(0, 4)}
                     </strong></p>}
                   {attempt.initiatedAt && <small>Initiated {date(attempt.initiatedAt, true)}</small>}
                   {attempt.completedAt && <small>Completed {date(attempt.completedAt, true)}</small>}
@@ -189,7 +194,7 @@ export function InvoiceDetail({
                 <Badge tone={promise.status === 'active' ? 'green' : 'neutral'}>{human(promise.status)} promise</Badge>
                 <strong>
                   {date(promise.promisedDate)}
-                  {promise.promisedDate.slice(0, 4)}
+                  {' '}{promise.promisedDate.slice(0, 4)}
                 </strong>
               </div>
               <blockquote>“{promise.quote}”</blockquote>
@@ -208,6 +213,7 @@ export function InvoiceDetail({
               {data.callEligibility.windowClosesAt && <div className="response-window">
                 <span>Response window closes</span>
                 <strong>{date(data.callEligibility.windowClosesAt, true)} London</strong>
+                <ResponseCountdown closesAt={data.callEligibility.windowClosesAt} appTime={data.appTime} />
                 {data.appTime.simulated && <Badge tone="amber">SIMULATED TIME</Badge>}
               </div>}
               <ul className="checklist">{data.callEligibility.checks.map(check => <li key={check.label}>
@@ -223,7 +229,7 @@ export function InvoiceDetail({
               <code>{data.callEligibility.decisionCode}</code>
             </div></Panel>
           <Panel title="Customer memory" aside={<Badge tone={data.memory.provider === 'cognee' && data.memory.availability === 'available' ? 'green' : 'amber'}>{data.memory.provider === 'fallback_structured' ? 'Fallback in use' : human(data.memory.availability)}</Badge>}><div className="memory-content">
-              <p>{data.memory.provider === 'fallback_structured' ? 'Facts from structured records. Cognee memory is unavailable.' : data.memory.provider === 'cognee' ? `Retrieved from Cognee · ${human(data.memory.availability)}.` : 'Memory was not used for this decision.'}</p>
+              <p>{data.memory.provider === 'fallback_structured' ? 'Facts from structured records. Cognee memory is unavailable.' : data.memory.provider === 'cognee' ? `Retrieved from Cognee · ${human(data.memory.availability)}.` : 'Memory not used for this decision'}</p>
               {data.memory.facts.map((fact, index) => <div className="memory-fact" key={index}>
                 <strong>{fact.statement}</strong>
                 {fact.sourceLabels.map(label => <small key={label}>{label}</small>)}
@@ -236,7 +242,6 @@ export function InvoiceDetail({
               </div>)}</dl></Panel>
         </aside>
       </div>
-      <DemoControls onChange={reload} />
     </>}
   </Shell>;
 }

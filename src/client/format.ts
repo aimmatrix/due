@@ -22,3 +22,10 @@ export const collectionLabels: Record<CollectionStatus, string> = {
   needs_review: 'Needs review',
   paid: 'Collected'
 };
+
+export function responseWindowLabel(closesAt: string, appNow: string, elapsedMs = 0) {
+  const remaining = new Date(closesAt).getTime() - new Date(appNow).getTime() - elapsedMs;
+  if (remaining <= 0) return 'Response window closed';
+  const minutes = Math.ceil(remaining / 60000);
+  return `${Math.floor(minutes / 60)}h ${minutes % 60}m remaining`;
+}
