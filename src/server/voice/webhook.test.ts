@@ -136,3 +136,15 @@ test("initiation failure is explicit", async () => {
   assert.equal(r.event.outcome, "no_answer");
   assert.equal(r.event.dedupKey, "elevenlabs:call_initiation_failure:conv_1");
 });
+
+test("inbound conversations are rejected even with a known action id", async () => {
+  const body = payload({ metadata: { phone_call: { call_sid: "CA1", direction: "inbound" } } });
+  const r = await verifyAndNormaliseCallEvent(body, signed(body), deps);
+  assert.deepEqual(r, { ok: false, errorCode: "inbound_call" });
+});
+
+test("outbound direction is accepted", async () => {
+  const body = payload({ metadata: { phone_call: { call_sid: "CA1", direction: "outbound" }, termination_reason: "end_call tool" } });
+  const r = await verifyAndNormaliseCallEvent(body, signed(body), deps);
+  assert.ok(r.ok);
+});

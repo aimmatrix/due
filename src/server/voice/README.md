@@ -11,7 +11,7 @@ Branch `codex/voice`, files only under `src/server/voice/**`. No dependencies, s
 **Already live (identifiers, not secrets):**
 
 - ElevenLabs agent "Due collections": `agent_9301m50ff7pxe36ss4jfsysd3ham`, configured from `agent-config.ts`
-- Twilio number `+16413374120`, imported as `phnum_4301m50ezantfa4t58d8z38q91eq` and assigned to that agent
+- Twilio number `+16413374120`, imported as `phnum_4301m50ezantfa4t58d8z38q91eq` and used by that agent for outbound calls only (no inbound agent assigned)
 - Allowlisted demo destination: the teammate's verified mobile, held in `VOICE_DEMO_ALLOWLIST`
 
 **Integration steps:**
@@ -49,7 +49,7 @@ Types live in `types.ts` and mirror the contract in `TEAMMATE_TASKS.md`. Swap th
 
 1. Twilio: verify the teammate's number under Verified Caller IDs, buy one voice number, enable the destination country in Geo permissions.
 2. ElevenLabs → Phone numbers → import the Twilio number (SID + auth token). Note the `phnum_…` ID.
-3. `npx tsx --env-file=.env.local src/server/voice/scripts/setup-agent.ts` creates/updates the agent from `agent-config.ts` (prompt, first message, voicemail message, end-call and voicemail-detection tools, data-collection fields) and assigns the number.
+3. `npx tsx --env-file=.env.local src/server/voice/scripts/setup-agent.ts` creates/updates the agent from `agent-config.ts` (prompt, first message, voicemail message, end-call and voicemail-detection tools, data-collection fields) and clears the number's inbound agent so the number is outbound-only.
 4. ElevenLabs → Settings → Webhooks: add a post-call webhook pointing at A0's `POST /api/webhooks/elevenlabs`, enable HMAC, copy the secret into `ELEVENLABS_WEBHOOK_SECRET`. Enable "send call initiation failure" events.
 5. One controlled call: `npx tsx --env-file=.env.local src/server/voice/scripts/controlled-call.ts +44…`.
 
@@ -78,11 +78,11 @@ Correlation travels as dynamic variables `due_action_id`, `due_correlation_id`, 
 
 Adapter: invalid context or non-allowlisted number → `failed` without dialling; provider rejection or 4xx → `failed`; transport timeout, network error or 5xx → `unknown` (reconcile before any further attempt; the adapter never redials).
 
-Webhook: missing, malformed, stale (>30 min) or invalid signatures are rejected; unknown or missing `due_action_id` is rejected. `dedupKey` is `elevenlabs:<event type>:<conversation id>`, stable across redeliveries; A0 enforces uniqueness.
+Webhook: missing, malformed, stale (>30 min) or invalid signatures are rejected; unknown or missing `due_action_id` is rejected; inbound-direction conversations are rejected. `dedupKey` is `elevenlabs:<event type>:<conversation id>`, stable across redeliveries; A0 enforces uniqueness.
 
 ## Tests
 
-`npx tsx --test src/server/voice/*.test.ts` (18 tests: adapter states, signature checks, every outcome mapping). No dependency added; A0 may switch to the project test runner.
+`npx tsx --test src/server/voice/*.test.ts` (20 tests: adapter states, signature checks, every outcome mapping). No dependency added; A0 may switch to the project test runner.
 
 ## Status
 
@@ -96,6 +96,13 @@ Webhook: missing, malformed, stale (>30 min) or invalid signatures are rejected;
 
 ## Limitations
 
-- **Real outbound call is blocked by the Twilio trial account.** The controlled call on 15 Oct 2026 returned `failed / provider_rejected`; ElevenLabs reports "trial accounts have limited parameter access". Inbound calls to the same number do reach the agent. Upgrading the Twilio account is required to complete B1-01/B1-05; this is reported as an unmet requirement, not simulated.
-- Inbound calls do not carry dynamic variables, so the agent cannot start a conversation on an inbound call; this module only supports outbound.
+- **Real outbound call is blocked by the Twilio trial account.** The controlled call on 15 Oct 2026 returned `failed / provider_rejected`; ElevenLabs reports "trial accounts have limited parameter access". Upgrading the Twilio account is required to complete B1-01/B1-05; this is reported as an unmet requirement, not simulated.
+- **Outbound only.** Inbound calls are not supported: the setup script leaves no agent assigned to the number, and the webhook rejects any conversation whose `metadata.phone_call.direction` is `inbound` (`inbound_call`) as well as any without a known `due_action_id`. If the number was already assigned to the agent in the ElevenLabs dashboard, re-run `setup-agent.ts` or unassign it under Phone numbers.
 - Voicemail detection relies on ElevenLabs' voicemail tool and termination reason; unrecognised voicemail with no customer speech still maps to `no_answer`.
+
+## Requests for A0
+
+- Add the variable names above to `.env.example`.
+- Route `POST /api/webhooks/elevenlabs` must pass the raw body string and headers unchanged, and supply `isKnownAction(actionId, conversationId)` from persisted voice attempts.
+- Store `conversationId`/`callSid` from the initiation receipt so webhook correlation can match on both.
+- Publish `src/contracts/**` voice types; this module will switch its imports.

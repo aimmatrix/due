@@ -91,6 +91,7 @@ export type VerifyErrorCode =
   | "invalid_signature"
   | "malformed_body"
   | "unsupported_event"
+  | "inbound_call"
   | "missing_correlation"
   | "unknown_action";
 
