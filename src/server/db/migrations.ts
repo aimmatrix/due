@@ -238,4 +238,11 @@ CREATE TABLE app_settings (
     // without re-asking the LLM (which could answer differently).
     sql: `ALTER TABLE billing_runs ADD COLUMN decision TEXT;`,
   },
+  {
+    id: 3,
+    name: "evidence_app_time",
+    // Application-clock time at which the system recorded the evidence. Collections decisions compare
+    // replies with reminder delivery on the app clock, so a reply after the demo clock moved counts.
+    sql: `ALTER TABLE evidence ADD COLUMN received_app_at TEXT;`,
+  },
 ];

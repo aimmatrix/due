@@ -59,6 +59,7 @@ export async function recordCustomerMessage(rt: MessageRuntime, input: CustomerM
     customerId: customer.id,
     invoiceId: invoice.id,
     receivedAt: input.receivedAt,
+    receivedAppAt: rt.appTime().now,
     text: input.text,
   });
 

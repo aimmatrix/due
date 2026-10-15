@@ -21,6 +21,7 @@ import type {
   OrganisationId,
   PaymentPromise,
   PromiseStatus,
+  InboundResponse,
   ReviewItem,
   SafeError,
   StripeInvoiceSnapshot,
@@ -226,7 +227,10 @@ const toAudit = (r: Row): AuditEntry => ({
 
 type Org = OrganisationId;
 
-export interface InsertEvidence extends Omit<Evidence, "id"> {}
+export interface InsertEvidence extends Omit<Evidence, "id"> {
+  /** Application-clock time of recording (defaults to receivedAt). */
+  receivedAppAt?: string;
+}
 
 export type ClaimResult = { ok: true } | { ok: false; existingRunId: string | null };
 
@@ -265,6 +269,8 @@ export interface Repositories {
     listByIds(org: Org, ids: string[]): Evidence[];
     /** Inbound customer responses (customer_message/email/call_outcome) for an invoice received after `afterIso`. */
     listInboundForInvoice(org: Org, invoiceId: string, afterIso?: string): Evidence[];
+    /** Inbound responses for collections decisions, timestamped on the APPLICATION clock. */
+    listInboundResponses(org: Org, invoiceId: string): InboundResponse[];
   };
   billingRuns: {
     /** Idempotent on primary evidence: re-delivery returns the original run. */
@@ -396,11 +402,11 @@ export function createRepositories(db: Db): Repositories {
       insertOrGet: (input) => {
         const id = newId("ev");
         const res = run(
-          `INSERT INTO evidence (id, organisation_id, external_event_id, source_type, source_ref, customer_ref, customer_id, invoice_id, received_at, text, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO evidence (id, organisation_id, external_event_id, source_type, source_ref, customer_ref, customer_id, invoice_id, received_at, text, created_at, received_app_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT (organisation_id, source_type, external_event_id) DO NOTHING`,
           id, input.organisationId, input.externalEventId, input.sourceType, input.sourceRef, input.customerRef,
-          input.customerId, input.invoiceId, input.receivedAt, input.text, nowIso(),
+          input.customerId, input.invoiceId, input.receivedAt, input.text, nowIso(), input.receivedAppAt ?? input.receivedAt,
         );
         const r = one(
           "SELECT * FROM evidence WHERE organisation_id = ? AND source_type = ? AND external_event_id = ?",
@@ -424,6 +430,12 @@ export function createRepositories(db: Db): Repositories {
              AND (? IS NULL OR received_at > ?) ORDER BY received_at`,
           org, invoiceId, afterIso ?? null, afterIso ?? null,
         ).map(toEvidence),
+      listInboundResponses: (org, invoiceId) =>
+        all(
+          `SELECT id, source_type, COALESCE(received_app_at, received_at) AS at FROM evidence
+           WHERE organisation_id = ? AND invoice_id = ? AND source_type IN ('customer_message','email','call_outcome') ORDER BY at`,
+          org, invoiceId,
+        ).map((r) => ({ evidenceId: s(r.id), receivedAt: s(r.at), sourceType: s(r.source_type) as InboundResponse["sourceType"] })),
     },
 
     billingRuns: {

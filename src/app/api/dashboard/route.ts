@@ -1,12 +1,13 @@
-/**
- * GET /api/dashboard — A0. Serves the frozen MOCK fixture (header x-due-mock: true) until the
- * read models are wired in A0-06. The response shape is final.
- */
-import { FIXTURE_DASHBOARD } from "@/contracts/fixtures";
+/** GET /api/dashboard — A0-06 real read model (summary totals, invoices, reviews, service health). */
+import { DEMO_ORGANISATION_ID } from "@/contracts";
+import { getRepositories } from "@/server/db";
 import { ok } from "@/server/http/respond";
+import { getAppTime } from "@/server/jobs/clock";
+import { buildDashboard } from "@/server/orchestration/read-models";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return ok(FIXTURE_DASHBOARD, undefined, { headers: { "x-due-mock": "true" } });
+  const repos = getRepositories();
+  return ok(buildDashboard(repos, DEMO_ORGANISATION_ID, getAppTime(repos)));
 }
