@@ -35,6 +35,8 @@ export const env = {
   stripeWebhookSecret: () => required("STRIPE_WEBHOOK_SECRET", "Stripe webhook signing secret (whsec_…)"),
   anthropicApiKey: () => read("ANTHROPIC_API_KEY") ?? null,
   anthropicModel: () => read("ANTHROPIC_MODEL") ?? "claude-sonnet-5-5",
+  openAiApiKey: () => read("OPENAI_API_KEY") ?? null,
+  openAiModel: () => read("OPENAI_MODEL") ?? "gpt-4.1-mini",
   ingestToken: () => required("INGEST_TOKEN", "bearer token for /api/events/*"),
   /** Shared access code typed into the service-completion form. */
   formAccessCode: () => required("FORM_ACCESS_CODE", "access code for the service-completion form"),
@@ -77,6 +79,7 @@ export function configReport(): Array<{ name: string; ok: boolean; detail: strin
   });
   const optional: Array<[string, unknown]> = [
     ["ANTHROPIC_API_KEY", env.anthropicApiKey()],
+    ["OPENAI_API_KEY", env.openAiApiKey()],
     ["COGNEE_API_KEY", env.cogneeApiKey()],
     ["RESEND_API_KEY", env.resendApiKey()],
     ["ELEVENLABS_API_KEY", env.elevenLabsApiKey()],
