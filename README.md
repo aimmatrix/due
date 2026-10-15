@@ -15,6 +15,7 @@ npm install
 cp .env.example .env.local   # Stripe TEST keys only; live keys are refused
 npm run dev                  # http://localhost:3000
 npm run check:env            # which configuration names are set (never values)
+npm run db:seed              # migrate + seed synthetic demo data (safe to re-run)
 npm run typecheck
 npm test
 ```
