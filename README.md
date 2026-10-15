@@ -6,7 +6,21 @@ Due turns evidence of completed work into Stripe test-mode invoices, explains ea
 
 ## Project status
 
-Planning stage. This repository currently contains requirements and build tasks; the application is not implemented yet.
+Foundation and shared contract checkpoint (A0-01, A0-02) are in place. Lane modules ship as typed stubs; see [hack-build/PLAN.md](hack-build/PLAN.md) for ownership and build order.
+
+## Commands
+
+```bash
+npm install
+cp .env.example .env.local   # Stripe TEST keys only; live keys are refused
+npm run dev                  # http://localhost:3000
+npm run check:env            # which configuration names are set (never values)
+npm run db:seed              # migrate + seed synthetic demo data (safe to re-run)
+npm run typecheck
+npm test
+```
+
+`GET /api/health` reports configuration state. The real event source is the service-completion form at `/forms/completion` (access code `FORM_ACCESS_CODE`); systems can also post to `POST /api/events/completion` with `Authorization: Bearer $INGEST_TOKEN`. Neither accepts a price. `GET /api/dashboard` and `GET /api/invoices/inv_fixture_acme` serve frozen mock fixtures (header `x-due-mock: true`) until the read models are wired.
 
 ## Build documents
 

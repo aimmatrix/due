@@ -13,3 +13,7 @@ coverage/
 *.sqlite-*
 *.sqlite3
 *.sqlite3-*
+data/
+*.tsbuildinfo
+next-env.d.ts
+.next-e2e/
