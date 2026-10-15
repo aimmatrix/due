@@ -50,6 +50,13 @@ These routes serve the frozen fixtures today, marked with the `x-due-mock: true`
 4. Integrate one lane at a time: A1+A2, then A0-05 billing orchestrator and A0-06 Stripe webhooks/read models. Next comes A4-03 (real API), then A3 with A0-07, then B1-05.
 5. A0-08 acceptance, then A0-09 video and submission. Keep 30 minutes for this.
 
+## A3 → A0-07 integration rules (from the collections lane)
+
+- `decideFollowUp` is pure and uses the **application clock** for every timestamp. When A0 records a provider time (`deliveredAt`, inbound `receivedAt`), it must add the simulated-clock offset first. Otherwise a reply arriving after the clock was advanced looks older than the reminder.
+- At dispatch, re-run `decideFollowUp` and leave the action being dispatched out of `actions`. A reserved action blocks the decision; a queued one does not.
+- Persist `promiseStatusUpdates()` before deciding. Use `callEligibility()` for the dashboard's `callEligibility` view.
+- Email: `ADAPTER_EMAIL=real` uses Resend, sending only to `DEMO_EMAIL_ALLOWLIST` with `Idempotency-Key = reminder-<actionId>`. `accepted` does not mean delivered; only a verified `email.delivered` webhook does. That webhook route is A0's to build: `POST /api/webhooks/email` → `verifyDeliveryEvent` → `actions.markDelivery`. The fake adapter's IDs start with `fake_msg_`.
+
 ## Per-worktree runtime isolation
 
 Each worktree has its own `.env.local` with a unique `PORT` and `DATABASE_PATH`. Only the integration checkout sets any `ADAPTER_*=real` that sends email or places calls. Lanes run `npm install` in their own worktree and never change dependencies.
