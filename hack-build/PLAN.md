@@ -17,7 +17,7 @@
 
 | Stream | Owns (create/edit) | Never touches |
 |---|---|---|
-| A0 integration (this session) | `package.json`, lockfile, root config (`tsconfig.json`, `next.config.ts`, `vitest.config.ts`, `postcss.config.mjs`, `.env.example`, `.gitignore`), `src/contracts/**`, `src/server/config/**`, `src/server/llm/**`, `src/server/http/**`, `src/server/db/**`, `src/server/jobs/**`, `src/server/orchestration/**`, `src/app/api/**`, `scripts/**`, root docs, `hack-build/**` | lane-owned bodies below (except integration merges) |
+| A0 integration (this session) | `package.json`, lockfile, root config (`tsconfig.json`, `next.config.ts`, `vitest.config.ts`, `postcss.config.mjs`, `.env.example`, `.gitignore`), `src/contracts/**`, `src/server/config/**`, `src/server/llm/**`, `src/server/http/**`, `src/server/db/**`, `src/server/jobs/**`, `src/server/orchestration/**`, `src/app/api/**`, `src/app/forms/**` (service-completion form = real event source), `scripts/**`, root docs, `hack-build/**` | lane-owned bodies below (except integration merges) |
 | A3 collections (this session, later) | `src/server/collections/**`, `src/server/memory/**`, `src/server/notifications/**` | everything else |
 | A1+A2 (terminal Claude) | `src/server/billing/**`, `src/server/stripe/**` | everything else |
 | A4 (Cursor) | `src/app/page.tsx`, `src/app/layout.tsx`, `src/app/globals.css`, `src/app/invoices/**` (new pages), `src/components/**`, `src/client/**`, `public/demo/**` | `src/app/api/**`, `src/contracts/**`, `src/server/**`, `package.json`, lockfile |

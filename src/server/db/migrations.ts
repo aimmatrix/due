@@ -231,4 +231,11 @@ CREATE TABLE app_settings (
 );
 `,
   },
+  {
+    id: 2,
+    name: "billing_run_decision",
+    // Persist the validated billing decision so a crashed run resumes Stripe creation
+    // without re-asking the LLM (which could answer differently).
+    sql: `ALTER TABLE billing_runs ADD COLUMN decision TEXT;`,
+  },
 ];

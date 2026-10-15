@@ -20,7 +20,7 @@ npm run typecheck
 npm test
 ```
 
-`GET /api/health` reports configuration state. `GET /api/dashboard` and `GET /api/invoices/inv_fixture_acme` serve frozen mock fixtures (header `x-due-mock: true`) until the read models are wired.
+`GET /api/health` reports configuration state. The real event source is the service-completion form at `/forms/completion` (access code `FORM_ACCESS_CODE`); systems can also post to `POST /api/events/completion` with `Authorization: Bearer $INGEST_TOKEN`. Neither accepts a price. `GET /api/dashboard` and `GET /api/invoices/inv_fixture_acme` serve frozen mock fixtures (header `x-due-mock: true`) until the read models are wired.
 
 ## Build documents
 

@@ -36,6 +36,8 @@ export const env = {
   anthropicApiKey: () => read("ANTHROPIC_API_KEY") ?? null,
   anthropicModel: () => read("ANTHROPIC_MODEL") ?? "claude-sonnet-5-5",
   ingestToken: () => required("INGEST_TOKEN", "bearer token for /api/events/*"),
+  /** Shared access code typed into the service-completion form. */
+  formAccessCode: () => required("FORM_ACCESS_CODE", "access code for the service-completion form"),
   databasePath: () => read("DATABASE_PATH") ?? "data/due.db",
   demoMode: () => read("DEMO_MODE") === "true",
   appBaseUrl: () => read("APP_BASE_URL") ?? "http://localhost:3000",
@@ -63,6 +65,7 @@ export function configReport(): Array<{ name: string; ok: boolean; detail: strin
     ["STRIPE_SECRET_KEY", env.stripeSecretKey],
     ["STRIPE_WEBHOOK_SECRET", env.stripeWebhookSecret],
     ["INGEST_TOKEN", env.ingestToken],
+    ["FORM_ACCESS_CODE", env.formAccessCode],
   ];
   const out = checks.map(([name, fn]) => {
     try {

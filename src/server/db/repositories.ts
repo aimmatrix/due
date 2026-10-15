@@ -279,6 +279,9 @@ export interface Repositories {
     findByBillingKey(org: Org, billingKey: string): BillingRun | null;
     listRecent(org: Org, limit: number): BillingRun[];
     listRetryable(org: Org): BillingRun[];
+    /** Validated decision stored with the run (DB-only column) for crash-safe resume. */
+    saveDecision(org: Org, id: string, decision: unknown): void;
+    getDecision<T>(org: Org, id: string): T | null;
   };
   invoices: {
     upsertFromSnapshot(input: UpsertInvoiceInput): { invoice: Invoice; changed: boolean };
@@ -493,7 +496,14 @@ export function createRepositories(db: Db): Repositories {
       },
       listRecent: (org, limit) => all("SELECT * FROM billing_runs WHERE organisation_id = ? ORDER BY created_at DESC LIMIT ?", org, limit).map(toRun),
       listRetryable: (org) =>
-        all("SELECT * FROM billing_runs WHERE organisation_id = ? AND state IN ('creating_invoice','failed_retryable') ORDER BY created_at", org).map(toRun),
+        all("SELECT * FROM billing_runs WHERE organisation_id = ? AND state IN ('received','evaluating','creating_invoice','failed_retryable') ORDER BY created_at", org).map(toRun),
+      saveDecision: (org, id, decision) => {
+        run("UPDATE billing_runs SET decision = ?, updated_at = ? WHERE organisation_id = ? AND id = ?", j(decision), nowIso(), org, id);
+      },
+      getDecision: <T>(org: Org, id: string): T | null => {
+        const r = one("SELECT decision FROM billing_runs WHERE organisation_id = ? AND id = ?", org, id);
+        return r ? pj<T | null>(r.decision, null) : null;
+      },
     },
 
     invoices: {
